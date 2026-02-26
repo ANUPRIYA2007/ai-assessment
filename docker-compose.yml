@@ -1,0 +1,94 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: proctorforge-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: proctorforge
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proctorforge-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: proctorforge-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proctorforge-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./proctorforge/server
+      dockerfile: Dockerfile
+    container_name: proctorforge-backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/proctorforge
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@postgres:5432/proctorforge
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
+      HMAC_SECRET_KEY: ${HMAC_SECRET_KEY:-change-me-in-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3001}
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./proctorforge/server:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - proctorforge-network
+    command: bash -c "
+      alembic upgrade head &&
+      python main.py
+    "
+
+  # Frontend (Optional - for local testing)
+  frontend:
+    build:
+      context: ./proctorforge/client
+      dockerfile: Dockerfile
+    container_name: proctorforge-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8001
+      NEXT_PUBLIC_WS_URL: ws://localhost:8001
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    networks:
+      - proctorforge-network
+
+networks:
+  proctorforge-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,90 @@
+name: "Next.js on Netlify Build"
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: |
+            proctorforge/client/package-lock.json
+      
+      - name: Install frontend dependencies
+        run: |
+          cd proctorforge/client
+          npm ci
+      
+      - name: Build frontend
+        run: |
+          cd proctorforge/client
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.API_URL || 'http://localhost:8000' }}
+          NEXT_PUBLIC_WS_URL: ${{ secrets.WS_URL || 'ws://localhost:8000' }}
+      
+      - name: Type check
+        run: |
+          cd proctorforge/client
+          npm run type-check
+      
+      - name: Lint
+        run: |
+          cd proctorforge/client
+          npm run lint
+        continue-on-error: true
+
+  netlify-preview:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Deploy preview to Netlify
+        uses: nwtgck/actions-netlify@v2
+        with:
+          publish-dir: './proctorforge/client/.next'
+          production-branch: main
+          production-deploy: false
+          enable-pull-request-comment: true
+          enable-commit-comment: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  netlify-deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v2
+        with:
+          publish-dir: './proctorforge/client/.next'
+          production-branch: main
+          production-deploy: true
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

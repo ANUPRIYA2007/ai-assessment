@@ -1,0 +1,56 @@
+# ProctorForge AI - Netlify Configuration
+
+[build]
+  command = "cd proctorforge/client && npm run build"
+  publish = "proctorforge/client/.next"
+  functions = "netlify/functions"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Environment variables (set these in Netlify UI)
+[build.environment]
+  NODE_VERSION = "18"
+  NODE_ENV = "production"
+
+# Redirects for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
+
+# Request headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Static assets cache
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Images cache
+[[headers]]
+  for = "/public/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# Context-specific configurations
+[context.production]
+  command = "cd proctorforge/client && npm run build"
+  publish = "proctorforge/client/.next"
+
+[context.deploy-preview]
+  command = "cd proctorforge/client && npm run build"
+  publish = "proctorforge/client/.next"
+
+[context.branch-deploy]
+  command = "cd proctorforge/client && npm run build"
+  publish = "proctorforge/client/.next"

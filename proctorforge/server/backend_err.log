@@ -1,0 +1,64 @@
+INFO:     Will watch for changes in these directories: ['C:\\Users\\Anupriya\\Downloads\\ai-assessment-main\\ai-assessment-main\\proctorforge\\server']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [15680] using WatchFiles
+INFO:     Started server process [26968]
+INFO:     Waiting for application startup.
+C:\Users\Anupriya\Downloads\ai-assessment-main\ai-assessment-main\proctorforge\server\venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0.post1)/charset_normalizer (3.4.4) doesn't match a supported version!
+  warnings.warn(
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\Anupriya\Downloads\ai-assessment-main\ai-assessment-main\proctorforge\server\database.py", line 61, in init_db
+    print("\u2705 Supabase client connected (REST/HTTPS)")
+  File "C:\Users\Anupriya\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 0: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Anupriya\Downloads\ai-assessment-main\ai-assessment-main\proctorforge\server\venv\Lib\site-packages\starlette\routing.py", line 693, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\Downloads\ai-assessment-main\ai-assessment-main\proctorforge\server\venv\Lib\site-packages\fastapi\routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\Downloads\ai-assessment-main\ai-assessment-main\proctorforge\server\venv\Lib\site-packages\fastapi\routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\Downloads\ai-assessment-main\ai-assessment-main\proctorforge\server\venv\Lib\site-packages\fastapi\routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\Downloads\ai-assessment-main\ai-assessment-main\proctorforge\server\venv\Lib\site-packages\fastapi\routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\Downloads\ai-assessment-main\ai-assessment-main\proctorforge\server\venv\Lib\site-packages\fastapi\routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anupriya\Downloads\ai-assessment-main\ai-assessment-main\proctorforge\server\main.py", line 23, in lifespan
+    await init_db()
+  File "C:\Users\Anupriya\Downloads\ai-assessment-main\ai-assessment-main\proctorforge\server\database.py", line 70, in init_db
+    print(f"\u26a0\ufe0f  Supabase client warning: {type(e).__name__}: {str(e)[:120]}")
+  File "C:\Users\Anupriya\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 0-1: character maps to <undefined>
+
+ERROR:    Application startup failed. Exiting.
