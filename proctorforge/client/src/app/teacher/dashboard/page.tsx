@@ -7,6 +7,7 @@ import gsap from 'gsap';
 import { useAuthStore } from '@/stores/authStore';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { examsAPI, authAPI } from '@/lib/api';
+import { Leaderboard } from '@/components/Leaderboard';
 
 /* ── Animated stat card ── */
 function StatCard({ icon, label, value, color, delay = 0 }: {
@@ -107,7 +108,7 @@ export default function TeacherDashboard() {
   useEffect(() => {
     if (!user || user.role !== 'teacher') return;
     fetchData();
-    const iv = setInterval(fetchData, 15000);
+    const iv = setInterval(fetchData, 5000); // 5s real-time polling
     return () => clearInterval(iv);
   }, [user, fetchData]);
 
@@ -327,6 +328,18 @@ export default function TeacherDashboard() {
             </div>
           )}
         </div>
+
+        {/* ══ Leaderboard for active exams ══ */}
+        {exams.filter(e => e.status === 'active' || e.status === 'completed').length > 0 && (
+          <div>
+            <h2 className="text-xl font-bold text-white mb-4">Leaderboards</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {exams.filter(e => e.status === 'active' || e.status === 'completed').slice(0, 4).map(exam => (
+                <Leaderboard key={exam.id} examId={exam.id} examTitle={exam.title} role="teacher" />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ══ Question Management Panel ══ */}

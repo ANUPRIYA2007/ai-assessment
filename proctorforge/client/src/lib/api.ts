@@ -87,6 +87,7 @@ export const attemptsAPI = {
   logCode: (attemptId: string, data: any) => api.post(`/api/attempts/${attemptId}/code-logs`, data),
   getCodeLogs: (attemptId: string) => api.get(`/api/attempts/${attemptId}/code-logs`),
   submitCode: (attemptId: string, data: any) => api.post(`/api/attempts/${attemptId}/submit-code`, data),
+  getLeaderboard: (examId: string) => api.get(`/api/attempts/leaderboard/${examId}`),
 };
 
 // ===== Admin APIs (classes, sections, years) =====

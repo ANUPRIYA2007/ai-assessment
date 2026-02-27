@@ -86,6 +86,21 @@ async def create_attempt(
     if existing:
         return AttemptResponse.model_validate(existing)
 
+    # Block re-takes: if a completed attempt exists, deny
+    result = await db.execute(
+        select(Attempt).where(
+            Attempt.user_id == current_user.id,
+            Attempt.exam_id == data.exam_id,
+            Attempt.status == "completed",
+        )
+    )
+    completed_attempt = result.scalar_one_or_none()
+    if completed_attempt:
+        raise HTTPException(
+            status_code=403,
+            detail="You have already completed this exam. Re-takes are not allowed.",
+        )
+
     attempt = Attempt(
         user_id=current_user.id,
         exam_id=data.exam_id,
@@ -123,7 +138,7 @@ async def end_attempt(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """End an exam attempt."""
+    """End an exam attempt and push real-time notification."""
     result = await db.execute(select(Attempt).where(Attempt.id == attempt_id))
     attempt = result.scalar_one_or_none()
     if not attempt:
@@ -134,6 +149,23 @@ async def end_attempt(
 
     attempt.status = "completed"
     attempt.end_time = datetime.utcnow()
+
+    # Push WebSocket notification to teacher feed and admin
+    try:
+        from routers.websocket import manager
+        payload = {
+            "type": "attempt_completed",
+            "attempt_id": str(attempt.id),
+            "exam_id": str(attempt.exam_id),
+            "student_id": str(attempt.user_id),
+            "trust_score": attempt.trust_score,
+            "risk_level": attempt.risk_level,
+        }
+        await manager.send_to_channel(f"teacher_feed:{attempt.exam_id}", payload)
+        await manager.send_to_channel("admin:global", payload)
+    except Exception:
+        pass  # non-blocking
+
     return {"message": "Attempt ended", "trust_score": attempt.trust_score}
 
 
@@ -264,3 +296,60 @@ async def submit_code(
     db.add(submission)
     await db.flush()
     return {"message": "Code submitted", "submission_id": str(submission.id)}
+
+
+# ===== LEADERBOARD =====
+
+@router.get("/leaderboard/{exam_id}")
+async def get_leaderboard(
+    exam_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get leaderboard for an exam — ranked by trust_score descending.
+    Teachers/admins see all; students see anonymized ranks.
+    """
+    from sqlalchemy import desc, func
+
+    # Get best attempt per student for this exam
+    result = await db.execute(
+        select(Attempt, User)
+        .join(User, Attempt.user_id == User.id)
+        .where(Attempt.exam_id == exam_id)
+        .order_by(desc(Attempt.trust_score))
+    )
+    rows = result.unique().all()
+
+    # De-duplicate: best trust_score per user
+    seen = set()
+    entries = []
+    rank = 0
+    for attempt, user in rows:
+        uid = str(user.id)
+        if uid in seen:
+            continue
+        seen.add(uid)
+        rank += 1
+
+        entry = {
+            "rank": rank,
+            "trust_score": round(attempt.trust_score, 2),
+            "risk_level": attempt.risk_level,
+            "status": attempt.status,
+        }
+
+        if current_user.role in ("teacher", "admin"):
+            entry["student_id"] = uid
+            entry["student_name"] = user.name
+            entry["student_email"] = user.email
+        else:
+            # Students see anonymized names
+            entry["student_name"] = f"Student #{rank}"
+            if uid == str(current_user.id):
+                entry["student_name"] = "You"
+                entry["is_you"] = True
+
+        entries.append(entry)
+
+    return {"exam_id": str(exam_id), "leaderboard": entries, "total_students": len(entries)}

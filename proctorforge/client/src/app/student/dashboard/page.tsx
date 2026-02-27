@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { examsAPI, attemptsAPI } from '@/lib/api';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { Leaderboard } from '@/components/Leaderboard';
 import gsap from 'gsap';
 
 /* ── Stat card ── */
@@ -92,8 +93,8 @@ function StatCard({
 }
 
 /* ── Exam card ── */
-function ExamCard({ exam, index, onStart, starting }: {
-  exam: any; index: number; onStart: () => void; starting: boolean;
+function ExamCard({ exam, index, onStart, starting, isCompleted }: {
+  exam: any; index: number; onStart: () => void; starting: boolean; isCompleted: boolean;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -140,13 +141,15 @@ function ExamCard({ exam, index, onStart, starting }: {
 
       <button
         onClick={onStart}
-        disabled={starting}
-        className="mt-5 w-full py-3 rounded-xl text-sm font-bold text-white transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
-        style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}
-        onMouseEnter={e => { if (!starting) gsap.to(e.currentTarget, { scale: 1.02, duration: 0.15 }); }}
+        disabled={starting || isCompleted}
+        className="mt-5 w-full py-3 rounded-xl text-sm font-bold text-white transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+        style={{ background: isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#7c3aed,#a855f7)', boxShadow: isCompleted ? '0 4px 20px rgba(16,185,129,0.35)' : '0 4px 20px rgba(124,58,237,0.35)' }}
+        onMouseEnter={e => { if (!starting && !isCompleted) gsap.to(e.currentTarget, { scale: 1.02, duration: 0.15 }); }}
         onMouseLeave={e => gsap.to(e.currentTarget, { scale: 1, duration: 0.15 })}
       >
-        {starting ? (
+        {isCompleted ? (
+          <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Test Completed</>
+        ) : starting ? (
           <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Starting…</>
         ) : (
           <>Start Assessment <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" /></svg></>
@@ -159,6 +162,7 @@ function ExamCard({ exam, index, onStart, starting }: {
 export default function StudentDashboard() {
   const { user, loadFromStorage } = useAuthStore();
   const [exams, setExams]     = useState<any[]>([]);
+  const [attempts, setAttempts] = useState<any[]>([]);
   const [completed, setCompleted] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
@@ -191,8 +195,9 @@ export default function StudentDashboard() {
       attemptsAPI.list().catch(() => ({ data: [] })),
     ]).then(([examRes, attemptRes]) => {
       setExams((examRes as any).data || []);
-      const attempts = (attemptRes as any).data || [];
-      setCompleted(attempts.filter((a: any) => a.status === 'completed').length);
+      const attemptsData = (attemptRes as any).data || [];
+      setAttempts(attemptsData);
+      setCompleted(attemptsData.filter((a: any) => a.status === 'completed').length);
     }).catch(() => setError('Failed to load exams. Please refresh.'))
       .finally(() => setLoading(false));
   }, [user]);
@@ -326,18 +331,34 @@ export default function StudentDashboard() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filtered.map((exam, i) => (
-                <ExamCard
-                  key={exam.id}
-                  exam={exam}
-                  index={i}
-                  starting={startingId === exam.id}
-                  onStart={() => handleStart(exam)}
-                />
-              ))}
+              {filtered.map((exam, i) => {
+                const examCompleted = attempts.some((a: any) => a.exam_id === exam.id && a.status === 'completed');
+                return (
+                  <ExamCard
+                    key={exam.id}
+                    exam={exam}
+                    index={i}
+                    starting={startingId === exam.id}
+                    isCompleted={examCompleted}
+                    onStart={() => handleStart(exam)}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
+
+        {/* ══ Leaderboard for completed/active exams ══ */}
+        {exams.filter((e: any) => e.status === 'active' || e.status === 'completed').length > 0 && (
+          <div>
+            <h2 className="text-xl font-bold text-white mb-4">Leaderboards</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {exams.filter((e: any) => e.status === 'active' || e.status === 'completed').slice(0, 4).map((exam: any) => (
+                <Leaderboard key={exam.id} examId={exam.id} examTitle={exam.title} role="student" />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Proctoring info banner */}
         <div className="rounded-2xl p-5 flex items-start gap-4"

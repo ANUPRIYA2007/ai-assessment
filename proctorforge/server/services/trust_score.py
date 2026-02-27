@@ -90,3 +90,31 @@ def apply_violation_penalty(
         current_scores[dimension] = max(0, current_scores.get(dimension, 100) - amount)
 
     return current_scores
+
+
+def get_violation_penalty(event_type: str) -> float:
+    """Return the flat penalty amount for a given event type (used by monitoring.py)."""
+    penalties = {
+        "tab_switch": 5,
+        "window_blur": 3,
+        "devtools_open": 15,
+        "devtools_attempt": 10,
+        "copy_paste": 8,
+        "clipboard_attempt": 5,
+        "paste_detected": 10,
+        "fullscreen_exit": 10,
+        "gaze_deviation": 3,
+        "face_missing": 10,
+        "camera_face_missing": 10,
+        "multi_face": 15,
+        "camera_multi_face": 15,
+        "voice_mismatch": 10,
+        "audio_multiple_voices": 12,
+        "typing_anomaly": 8,
+        "burst_typing": 5,
+        "high_wpm": 7,
+        "code_entropy_anomaly": 10,
+        "large_paste": 12,
+        "idle_timeout": 3,
+    }
+    return penalties.get(event_type, 2)

@@ -7,6 +7,7 @@ import gsap from 'gsap';
 import { useAuthStore } from '@/stores/authStore';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { authAPI, examsAPI, adminAPI } from '@/lib/api';
+import { Leaderboard } from '@/components/Leaderboard';
 
 /* ───────────── Types ───────────── */
 interface User { id: string; name: string; email: string; role: string; status: string; created_at: string; class_name?: string; year?: string; section?: string; gender?: string; }
@@ -135,7 +136,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!user || user.role !== 'admin') return;
     fetchAll();
-    const iv = setInterval(fetchAll, 15000);
+    const iv = setInterval(fetchAll, 5000); // 5s real-time polling
     return () => clearInterval(iv);
   }, [user, fetchAll]);
 
@@ -310,6 +311,17 @@ export default function AdminDashboard() {
                     <span className={`text-xs px-2.5 py-1 rounded-lg font-medium capitalize ${SC[t.status] || 'text-slate-400 bg-white/5'}`}>{t.status || 'active'}</span>
                   </div>
                 ))}
+              </div>
+            )}
+            {/* Active Exam Leaderboards */}
+            {exams.filter(e => e.status === 'active' || e.status === 'completed').length > 0 && (
+              <div>
+                <h2 className="text-lg font-bold text-white mb-4">Exam Leaderboards</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {exams.filter(e => e.status === 'active' || e.status === 'completed').slice(0, 4).map(exam => (
+                    <Leaderboard key={exam.id} examId={exam.id} examTitle={exam.title} role="admin" />
+                  ))}
+                </div>
               </div>
             )}
           </div>

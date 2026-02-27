@@ -82,11 +82,13 @@ export function useWebSocket({
     }, []);
 
     useEffect(() => {
+        // Don't connect until we have a real session ID
+        if (!sessionId || sessionId === 'pending') return;
         connect();
         return () => {
             disconnect();
         };
-    }, [connect, disconnect]);
+    }, [sessionId, connect, disconnect]);
 
     return { send, disconnect, reconnect: connect };
 }

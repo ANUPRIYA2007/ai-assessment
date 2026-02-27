@@ -16,11 +16,29 @@ from models.user import User
 from models.attempt import Attempt, TypingMetric
 from models.event import Event, AIIntervention
 from middleware.auth import get_current_user, require_teacher_or_admin
-from services.trust_score import compute_trust_score, apply_violation_penalty
+from services.trust_score import compute_trust_score, apply_violation_penalty, get_violation_penalty
 from services.ai_twin import analyze_session
 from utils.hmac import sign_event
 
 router = APIRouter(prefix="/api/monitoring", tags=["Monitoring"])
+
+# Import WS manager for real-time score pushes (lazy)
+_ws_manager = None
+def _get_ws_manager():
+    global _ws_manager
+    if _ws_manager is None:
+        from routers.websocket import manager
+        _ws_manager = manager
+    return _ws_manager
+
+async def _push_trust_update(attempt_id: str, exam_id: str, trust_score: float, risk_level: str, user_id: str):
+    """Push trust score update to the student via WebSocket and to teacher feed."""
+    mgr = _get_ws_manager()
+    payload = {"type": "trust_update", "trust_score": trust_score, "risk_level": risk_level}
+    await mgr.send_to_channel(f"exam:{attempt_id}", payload)
+    await mgr.send_to_channel(f"teacher_feed:{exam_id}", {
+        **payload, "student_id": user_id,
+    })
 
 # ── In-memory heartbeat tracking ──────────────────────────────────────────
 _heartbeats: Dict[str, datetime] = {}
@@ -217,9 +235,25 @@ async def receive_heartbeat(
         attempt = result.scalar_one_or_none()
         if attempt and attempt.user_id == current_user.id:
             for v in violations:
-                penalty = apply_violation_penalty(v["type"], attempt.trust_score)
+                penalty = get_violation_penalty(v["type"])
                 attempt.trust_score = max(0, attempt.trust_score - penalty)
             _session_states[attempt_key]["violations"] += len(violations)
+
+            # Update risk level
+            if attempt.trust_score < 40:
+                attempt.risk_level = "critical"
+            elif attempt.trust_score < 60:
+                attempt.risk_level = "high"
+            elif attempt.trust_score < 80:
+                attempt.risk_level = "medium"
+            else:
+                attempt.risk_level = "low"
+
+            # Push real-time trust update
+            await _push_trust_update(
+                str(data.attempt_id), str(attempt.exam_id),
+                attempt.trust_score, attempt.risk_level, str(current_user.id)
+            )
 
     await db.flush()
 
@@ -283,6 +317,22 @@ async def receive_camera_event(
             attempt.trust_score = max(0, attempt.trust_score - penalty)
             trust_adjustment = -penalty
 
+            # Update risk level
+            if attempt.trust_score < 40:
+                attempt.risk_level = "critical"
+            elif attempt.trust_score < 60:
+                attempt.risk_level = "high"
+            elif attempt.trust_score < 80:
+                attempt.risk_level = "medium"
+            else:
+                attempt.risk_level = "low"
+
+            # Push real-time trust update
+            await _push_trust_update(
+                str(data.attempt_id), str(attempt.exam_id),
+                attempt.trust_score, attempt.risk_level, str(current_user.id)
+            )
+
             # Trigger AI analysis for high-risk events
             if risk_info["risk"] in ("high", "critical"):
                 background_tasks.add_task(
@@ -335,6 +385,7 @@ async def receive_audio_event(
     db.add(event)
 
     trust_adjustment = 0
+    attempt = None
     if risk_info["penalty"] > 0:
         result = await db.execute(select(Attempt).where(Attempt.id == data.attempt_id))
         attempt = result.scalar_one_or_none()
@@ -342,6 +393,22 @@ async def receive_audio_event(
             penalty = risk_info["penalty"]
             attempt.trust_score = max(0, attempt.trust_score - penalty)
             trust_adjustment = -penalty
+
+            # Update risk level
+            if attempt.trust_score < 40:
+                attempt.risk_level = "critical"
+            elif attempt.trust_score < 60:
+                attempt.risk_level = "high"
+            elif attempt.trust_score < 80:
+                attempt.risk_level = "medium"
+            else:
+                attempt.risk_level = "low"
+
+            # Push real-time trust update
+            await _push_trust_update(
+                str(data.attempt_id), str(attempt.exam_id),
+                attempt.trust_score, attempt.risk_level, str(current_user.id)
+            )
 
     await db.flush()
 
@@ -403,6 +470,12 @@ async def receive_behavior_event(
             attempt.risk_level = "medium"
         else:
             attempt.risk_level = "low"
+
+        # Push real-time trust update
+        await _push_trust_update(
+            str(data.attempt_id), str(attempt.exam_id),
+            attempt.trust_score, attempt.risk_level, str(current_user.id)
+        )
 
     await db.flush()
 

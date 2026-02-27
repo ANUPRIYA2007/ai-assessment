@@ -11,7 +11,7 @@ const inputClass =
     'w-full pl-11 pr-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white placeholder-slate-600 text-sm font-medium focus:outline-none focus:border-brand-500/60 focus:bg-white/[0.06] focus:ring-1 focus:ring-brand-500/30 transition-all hover:border-white/[0.14]';
 
 const selectClass =
-    'w-full pl-11 pr-4 py-3.5 rounded-xl bg-[#0d0d1a] border border-white/[0.08] text-white text-sm font-medium focus:outline-none focus:border-brand-500/60 focus:ring-1 focus:ring-brand-500/30 transition-all hover:border-white/[0.14] appearance-none cursor-pointer';
+    'w-full pl-11 pr-4 py-3.5 rounded-xl bg-[#0d0d1a] border border-white/[0.08] text-white text-sm font-medium focus:outline-none focus:border-brand-500/60 focus:ring-1 focus:ring-brand-500/30 transition-all hover:border-white/[0.14] appearance-none cursor-pointer [&>option]:bg-[#0d0d1a] [&>option]:text-black';
 
 /* ── Labelled input row ── */
 function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -238,10 +238,10 @@ export default function RegisterPage() {
                                         <div className="relative group">
                                             <FieldIcon icon={iconSvg.gender} />
                                             <select value={gender} onChange={(e) => setGender(e.target.value)} className={selectClass} required>
-                                                <option value="" disabled className="bg-dark-800 text-slate-500">Select gender</option>
-                                                <option value="male" className="bg-dark-800">Male</option>
-                                                <option value="female" className="bg-dark-800">Female</option>
-                                                <option value="other" className="bg-dark-800">Prefer not to say</option>
+                                                <option value="" disabled className="bg-[#0d0d1a] text-black">Select gender</option>
+                                                <option value="male" className="bg-[#0d0d1a] text-black">Male</option>
+                                                <option value="female" className="bg-[#0d0d1a] text-black">Female</option>
+                                                <option value="other" className="bg-[#0d0d1a] text-black">Prefer not to say</option>
                                             </select>
                                             {/* dropdown arrow */}
                                             <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
@@ -268,9 +268,9 @@ export default function RegisterPage() {
                                             <div className="relative group">
                                                 <FieldIcon icon={iconSvg.year} />
                                                 <select value={year} onChange={(e) => setYear(e.target.value)} className={selectClass} required>
-                                                    <option value="" disabled className="bg-dark-800">Select year</option>
+                                                    <option value="" disabled className="bg-[#0d0d1a] text-black">Select year</option>
                                                     {['1st', '2nd', '3rd', '4th', '5th'].map((y) => (
-                                                        <option key={y} value={y} className="bg-dark-800">{y} Year</option>
+                                                        <option key={y} value={y} className="bg-[#0d0d1a] text-black">{y} Year</option>
                                                     ))}
                                                 </select>
                                                 <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
